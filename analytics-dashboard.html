@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📊 Mobile App Analytics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+      color: white;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0 0 10px 0;
+      font-size: 2.5em;
+    }
+    .header p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 1.1em;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: center;
+      transition: transform 0.3s;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+    .stat-number {
+      font-size: 2.5em;
+      font-weight: bold;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+      font-weight: 600;
+    }
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    .chart-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .chart-card h3 {
+      margin: 0 0 20px 0;
+      color: #333;
+      font-size: 1.3em;
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+    .controls {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+    }
+    .control-row {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .btn-secondary {
+      background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 Mobile App Analytics Dashboard</h1>
+    <p>Comprehensive analytics and insights from your mobile app logs</p>
+  </div>
+
+  <div class="controls">
+    <div class="control-row">
+      <button class="btn" onclick="loadAnalytics()">🔄 Refresh Analytics</button>
+      <button class="btn btn-secondary" onclick="window.location.href='/mobile-logs'">📱 Back to Logs</button>
+      <span id="lastUpdated"></span>
+    </div>
+  </div>
+
+  <div id="error" style="display: none;"></div>
+
+  <div class="stats-grid" id="stats">
+    <div class="stat-card">
+      <div class="stat-number" id="totalLogs">0</div>
+      <div class="stat-label">Total Logs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="uniqueApps">0</div>
+      <div class="stat-label">Unique Apps</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="errorRate">0%</div>
+      <div class="stat-label">Error Rate</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" id="avgPerHour">0</div>
+      <div class="stat-label">Logs/Hour</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>📱 App Distribution</h3>
+      <div class="chart-container">
+        <canvas id="appChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>⏰ Activity Timeline</h3>
+      <div class="chart-container">
+        <canvas id="timelineChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>❌ Error Analysis</h3>
+      <div class="chart-container">
+        <canvas id="errorChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>📊 Log Levels</h3>
+      <div class="chart-container">
+        <canvas id="levelChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let appChart, timelineChart, errorChart, levelChart;
+
+    function showError(message) {
+      const errorDiv = document.getElementById('error');
+      errorDiv.style.display = 'block';
+      errorDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
+    }
+
+    function hideError() {
+      document.getElementById('error').style.display = 'none';
+    }
+
+    function updateLastUpdated() {
+      document.getElementById('lastUpdated').textContent = 
+        `Last updated: ${new Date().toLocaleString()}`;
+    }
+
+    async function loadAnalytics() {
+      try {
+        hideError();
+        updateLastUpdated();
+        
+        // Fetch all logs for analytics
+        const response = await fetch('/api/notifications-mongo?limit=1000');
+        if (!response.ok) {
+          throw new Error('Failed to fetch logs');
+        }
+        
+        const data = await response.json();
+        const logs = data.notifications || [];
+        
+        if (logs.length === 0) {
+          showError('No logs found for analytics');
+          return;
+        }
+
+        // Update stats
+        updateStats(logs);
+        
+        // Create charts
+        createAppChart(logs);
+        createTimelineChart(logs);
+        createErrorChart(logs);
+        createLevelChart(logs);
+        
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+        showError('Failed to load analytics: ' + error.message);
+      }
+    }
+
+    function updateStats(logs) {
+      const totalLogs = logs.length;
+      const uniqueApps = new Set(logs.map(log => log.app)).size;
+      const errors = logs.filter(log => log.logLevel === 'error').length;
+      const errorRate = totalLogs > 0 ? ((errors / totalLogs) * 100).toFixed(1) : 0;
+      
+      // Calculate logs per hour (assuming logs are from last 24 hours)
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const recentLogs = logs.filter(log => new Date(log.timestamp) > oneDayAgo);
+      const avgPerHour = (recentLogs.length / 24).toFixed(1);
+
+      document.getElementById('totalLogs').textContent = totalLogs;
+      document.getElementById('uniqueApps').textContent = uniqueApps;
+      document.getElementById('errorRate').textContent = errorRate + '%';
+      document.getElementById('avgPerHour').textContent = avgPerHour;
+    }
+
+    function createAppChart(logs) {
+      const appCounts = {};
+      logs.forEach(log => {
+        appCounts[log.app] = (appCounts[log.app] || 0) + 1;
+      });
+
+      const sortedApps = Object.entries(appCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      const ctx = document.getElementById('appChart').getContext('2d');
+      
+      if (appChart) {
+        appChart.destroy();
+      }
+
+      appChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: sortedApps.map(([app]) => app),
+          datasets: [{
+            data: sortedApps.map(([, count]) => count),
+            backgroundColor: [
+              '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+              '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+              '#4BC0C0', '#FF6384'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function createTimelineChart(logs) {
+      // Group logs by hour
+      const hourlyData = {};
+      logs.forEach(log => {
+        const date = new Date(log.timestamp);
+        const hour = date.getHours();
+        hourlyData[hour] = (hourlyData[hour] || 0) + 1;
+      });
+
+      const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+      const data = labels.map((_, hour) => hourlyData[hour] || 0);
+
+      const ctx = document.getElementById('timelineChart').getContext('2d');
+      
+      if (timelineChart) {
+        timelineChart.destroy();
+      }
+
+      timelineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Logs per Hour',
+            data: data,
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function createErrorChart(logs) {
+      const errorApps = {};
+      logs.filter(log => log.logLevel === 'error').forEach(log => {
+        errorApps[log.app] = (errorApps[log.app] || 0) + 1;
+      });
+
+      const sortedErrors = Object.entries(errorApps)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8);
+
+      const ctx = document.getElementById('errorChart').getContext('2d');
+      
+      if (errorChart) {
+        errorChart.destroy();
+      }
+
+      errorChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: sortedErrors.map(([app]) => app),
+          datasets: [{
+            label: 'Errors',
+            data: sortedErrors.map(([, count]) => count),
+            backgroundColor: '#dc3545'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function createLevelChart(logs) {
+      const levelCounts = {};
+      logs.forEach(log => {
+        levelCounts[log.logLevel] = (levelCounts[log.logLevel] || 0) + 1;
+      });
+
+      const ctx = document.getElementById('levelChart').getContext('2d');
+      
+      if (levelChart) {
+        levelChart.destroy();
+      }
+
+      levelChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(levelCounts),
+          datasets: [{
+            data: Object.values(levelCounts),
+            backgroundColor: [
+              '#dc3545', // error
+              '#ffc107', // warning
+              '#17a2b8', // info
+              '#6c757d'  // debug
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    // Load analytics on page load
+    loadAnalytics();
+
+    // Auto-refresh every 30 seconds
+    setInterval(loadAnalytics, 30000);
+  </script>
+</body>
+</html> 

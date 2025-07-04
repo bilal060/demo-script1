@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🌐 Translation Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+      color: white;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0 0 10px 0;
+      font-size: 2.5em;
+    }
+    .test-container {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      margin-bottom: 25px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 14px;
+      min-height: 100px;
+      resize: vertical;
+    }
+    .form-group select {
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .btn {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      background: #e8f5e8;
+      border-radius: 8px;
+      border-left: 4px solid #28a745;
+    }
+    .result h3 {
+      margin: 0 0 10px 0;
+      color: #155724;
+    }
+    .result-text {
+      color: #155724;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .result-meta {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #666;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    .sample-texts {
+      margin-top: 20px;
+    }
+    .sample-texts h4 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    .sample-btn {
+      display: inline-block;
+      margin: 5px;
+      padding: 8px 16px;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s;
+    }
+    .sample-btn:hover {
+      background: #e9ecef;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🌐 Translation Test</h1>
+    <p>Test LibreTranslate integration for Mongolian, Korean, Chinese, and other languages</p>
+  </div>
+
+  <div class="test-container">
+    <div class="form-group">
+      <label for="sourceText">Text to Translate:</label>
+      <textarea id="sourceText" placeholder="Enter text in Mongolian, Korean, Chinese, or any other language..."></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="sourceLang">Source Language (or 'auto' for detection):</label>
+      <select id="sourceLang">
+        <option value="auto">Auto-detect</option>
+        <option value="mn">Mongolian (Cyrillic)</option>
+        <option value="ko">Korean</option>
+        <option value="zh">Chinese (Simplified)</option>
+        <option value="ja">Japanese</option>
+        <option value="ru">Russian</option>
+        <option value="ar">Arabic</option>
+        <option value="hi">Hindi</option>
+        <option value="th">Thai</option>
+        <option value="vi">Vietnamese</option>
+      </select>
+    </div>
+
+    <button class="btn" onclick="translateText()">🌐 Translate to English</button>
+
+    <div class="sample-texts">
+      <h4>Sample Texts:</h4>
+      <button class="sample-btn" onclick="setSampleText('Сайн байна уу? Би танд туслахад баяртай байна.')">Mongolian</button>
+      <button class="sample-btn" onclick="setSampleText('안녕하세요? 도와드릴 수 있어서 기쁩니다.')">Korean</button>
+      <button class="sample-btn" onclick="setSampleText('你好吗？我很高兴能帮助你。')">Chinese</button>
+      <button class="sample-btn" onclick="setSampleText('こんにちは？お手伝いできて嬉しいです。')">Japanese</button>
+      <button class="sample-btn" onclick="setSampleText('Привет! Как дела?')">Russian</button>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function setSampleText(text) {
+      document.getElementById('sourceText').value = text;
+    }
+
+    async function translateText() {
+      const text = document.getElementById('sourceText').value.trim();
+      const sourceLang = document.getElementById('sourceLang').value;
+      const resultDiv = document.getElementById('result');
+
+      if (!text) {
+        resultDiv.innerHTML = '<div class="error">Please enter text to translate</div>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<div class="result"><h3>Translating...</h3></div>';
+
+      try {
+        const response = await fetch('/api/translate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: text,
+            sourceLang: sourceLang,
+            targetLang: 'en'
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Translation failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        resultDiv.innerHTML = `
+          <div class="result">
+            <h3>🌐 Translation Result</h3>
+            <div class="result-text">${result.translatedText}</div>
+            <div class="result-meta">
+              <strong>Original:</strong> ${result.originalText}<br>
+              <strong>Source Language:</strong> ${result.sourceLanguage}<br>
+              <strong>Detected Language:</strong> ${result.detectedLanguage}<br>
+              <strong>Confidence:</strong> ${result.confidence ? (result.confidence * 100).toFixed(1) + '%' : 'N/A'}<br>
+              <strong>Timestamp:</strong> ${new Date(result.timestamp).toLocaleString()}
+            </div>
+          </div>
+        `;
+        
+      } catch (error) {
+        console.error('Translation error:', error);
+        resultDiv.innerHTML = `<div class="error">❌ Translation failed: ${error.message}</div>`;
+      }
+    }
+
+    // Allow Enter key to trigger translation
+    document.getElementById('sourceText').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        translateText();
+      }
+    });
+  </script>
+</body>
+</html> 
